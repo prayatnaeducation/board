@@ -2,595 +2,449 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Smart Board - Mobile Friendly with Fixed Spaces</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creative Smart Board</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Caveat (Handwriting style) -->
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter&family=Dancing+Script&family=Open+Sans&family=Roboto+Mono&family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --board-font-size: 3rem;     /* Default font size for text words */
-        }
-
         body {
-            font-family: 'Inter', sans-serif; /* Default font */
-            background-color: #f0f2f5;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0;
-            padding: 20px;
+            overflow: hidden;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            max-width: 1000px;
+            gap: 10px;
             box-sizing: border-box;
         }
-        /* Styles for the text words displayed on the board */
-        .handwriting-font {
-            font-family: 'Caveat', cursive; /* Apply handwriting font */
-            font-size: var(--board-font-size); /* Use CSS variable for font size */
-            line-height: 1.5;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Subtle shadow for depth */
-            word-break: break-word; /* Ensure long words wrap */
-        }
-        /* Custom scrollbar for textarea */
-        textarea::-webkit-scrollbar {
-            width: 8px;
-        }
-        textarea::-webkit-scrollbar-track {
-            background: #f1f1f1;
+
+        .board-wrapper {
+            position: relative;
+            flex-grow: 1;
+            border: 5px solid #ccc;
             border-radius: 10px;
-        }
-        textarea::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-        }
-        textarea::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* Style for color input */
+        .board {
+            background: #1a202c;
+            color: #FACC15;
+            padding: 15px;
+            font-size: 2rem;
+            white-space: pre-wrap; /* Crucial for preserving spaces within the board container */
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Vertically center content when it's small */
+            align-items: flex-start; /* Align text to the left within the centered area */
+            text-align: left;
+        }
+
+        @media (max-width: 768px) {
+            .board {
+                font-size: 1.2rem;
+                padding: 10px;
+            }
+            .font-press-start-2p {
+                font-size: 0.9rem;
+            }
+        }
+
+        #smartBoardTextContent {
+            width: 100%;
+            flex-shrink: 0;
+            min-height: min-content;
+            box-sizing: border-box;
+            /* Note: white-space: pre-wrap; is inherited from .board, ensuring spaces are preserved here */
+        }
+
+        #drawingCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 5px 0;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        button, input[type="color"], select, input[type="range"] {
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        button.active-tool {
+            background-color: #FACC15;
+            color: #1a202c;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
         input[type="color"] {
+            width: 40px;
+            height: 35px;
+            min-width: 40px;
+        }
+
+        select {
+            background-color: #007BFF;
+            color: white;
+            appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
-            appearance: none;
-            width: 40px;
-            height: 40px;
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 0;
-            border-radius: 8px;
-            overflow: hidden; /* Hide default color picker border */
-            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1); /* Add a subtle border */
-        }
-        input[type="color"]::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-        input[type="color"]::-webkit-color-swatch {
-            border: none;
-            border-radius: 8px;
-        }
-        input[type="color"]::-moz-color-swatch-wrapper {
-            padding: 0;
-        }
-        input[type="color"]::-moz-color-swatch {
-            border: none;
-            border-radius: 8px;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpolygon%20points%3D%220%2C64%20128%2C192%20256%2C64%22%20fill%3D%22white%22%2F%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 10px;
+            padding-right: 25px;
+            flex-grow: 1;
+            min-width: 120px;
         }
 
-        /* Styling for icon buttons */
-        .icon-button {
-            @apply flex items-center justify-center p-3 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2;
+        input[type="range"] {
+            flex-grow: 1;
+            min-width: 80px;
+            padding: 0 5px;
         }
-        .icon-button i {
-            font-size: 1.5rem;
+
+        .board-text-display {
+            display: inline;
+            /* white-space: pre-wrap is inherited from .board, so individual spans
+               will respect it without needing it specifically here for words.
+               For dedicated space spans, we'll explicitly set white-space: pre. */
         }
-        .icon-button.active {
-            @apply ring-2 ring-offset-2;
-        }
+
+        /* Font Classes */
+        .font-dancing-script { font-family: 'Dancing Script', cursive; }
+        .font-inter { font-family: 'Inter', sans-serif; }
+        .font-open-sans { font-family: 'Open Sans', sans-serif; }
+        .font-roboto-mono { font-family: 'Roboto Mono', monospace; }
+        .font-press-start-2p { font-family: 'Press Start 2P', cursive; font-size: 1.5rem; }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
-    <div class="flex flex-col md:flex-row bg-white rounded-xl shadow-2xl overflow-hidden max-w-6xl w-full">
-        <!-- Input & Controls Section -->
-        <div class="w-full md:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-6 text-center md:text-left">Creative Smart Board</h1>
-            <p class="text-gray-600 mb-6 text-center md:text-left">Type your text, choose tools, and interact with the board!</p>
-            <textarea
-                id="dialogBox"
-                class="w-full h-36 sm:h-48 p-4 mb-6 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 resize-y"
-                placeholder="Start typing or paste your text here..."
-            ></textarea>
+<body>
 
-            <!-- Text & Drawing Options -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <!-- Text Options -->
-                <div class="p-4 bg-gray-50 rounded-lg shadow-inner flex flex-col gap-4">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Text Options</h3>
-                    <div class="flex items-center gap-2">
-                        <label for="textColor" class="text-gray-700 font-medium whitespace-nowrap">Word Color:</label>
-                        <input type="color" id="textColor" value="#FACC15" class="rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="flex flex-col items-center gap-2 w-full">
-                        <label for="fontSize" class="text-gray-700 font-medium">Font Size:</label>
-                        <input type="range" id="fontSize" min="1" max="5" step="0.1" value="3" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span id="fontSizeValue" class="text-gray-600 text-sm">3.0rem</span>
-                    </div>
-                </div>
-
-                <!-- Drawing Tools -->
-                <div class="p-4 bg-gray-50 rounded-lg shadow-inner flex flex-col gap-4">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Drawing Tools</h3>
-                    <div class="flex items-center gap-2">
-                        <label for="penColor" class="text-gray-700 font-medium whitespace-nowrap">Pen Color:</label>
-                        <input type="color" id="penColor" value="#FFFFFF" class="rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="flex flex-col items-center gap-2 w-full">
-                        <label for="penSize" class="text-gray-700 font-medium">Pen Size:</label>
-                        <input type="range" id="penSize" min="1" max="20" step="1" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span id="penSizeValue" class="text-gray-600 text-sm">5px</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-2 w-full">
-                        <label for="eraserSize" class="text-gray-700 font-medium">Eraser Size:</label>
-                        <input type="range" id="eraserSize" min="5" max="50" step="1" value="20" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span id="eraserSizeValue" class="text-gray-600 text-sm">20px</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons (Icons) -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
-                <button id="startButton" class="icon-button bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500" title="Prepare Board">
-                    <i class="fas fa-clipboard-list"></i>
-                </button>
-                <button id="nextButton" class="icon-button bg-green-600 hover:bg-green-700 text-white focus:ring-green-500" title="Next Word" disabled>
-                    <i class="fas fa-arrow-right"></i>
-                </button>
-                <button id="toggleDrawingModeButton" class="icon-button bg-purple-600 hover:bg-purple-700 text-white focus:ring-purple-500" title="Switch to Eraser">
-                    <i class="fas fa-eraser"></i>
-                </button>
-                <button id="penToolButton" class="icon-button bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500 active ring-gray-500" title="Pen Tool">
-                    <i class="fas fa-pen"></i>
-                </button>
-                <button id="rectToolButton" class="icon-button bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500" title="Draw Rectangle">
-                    <i class="far fa-square"></i>
-                </button>
-                <button id="circleToolButton" class="icon-button bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500" title="Draw Circle">
-                    <i class="far fa-circle"></i>
-                </button>
-                <button id="lineToolButton" class="icon-button bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500" title="Draw Line">
-                    <i class="fas fa-minus"></i>
-                </button>
-                <button id="clearAllButton" class="icon-button bg-red-600 hover:bg-red-700 text-white focus:ring-red-500" title="Clear All">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>
+<div class="container">
+    <div class="board-wrapper">
+        <div id="smartBoardTextLayer" class="board font-dancing-script">
+            <div id="smartBoardTextContent"></div>
         </div>
-
-        <!-- Smart Board Section -->
-        <div class="w-full md:w-1/2 p-6 sm:p-8 lg:p-10 bg-gray-900 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-gray-700">
-            <h2 class="text-2xl sm:text-3xl font-bold text-white mb-6 text-center">The Smart Board</h2>
-            <div
-                id="smartBoardContainer"
-                class="relative w-full h-64 sm:h-80 md:h-96 bg-gray-900 border-4 border-gray-700 rounded-xl shadow-inner overflow-hidden"
-            >
-                <!-- Text layer (words will appear here) -->
-                <div
-                    id="smartBoardTextLayer"
-                    class="absolute inset-0 p-6 overflow-y-auto flex items-start justify-start flex-wrap handwriting-font z-10 pointer-events-none"
-                >
-                    <p style="color: #FACC15;" class="text-center w-full opacity-75">Your text will appear here...</p>
-                </div>
-                <!-- Drawing Canvas layer -->
-                <canvas
-                    id="drawingCanvas"
-                    class="absolute inset-0 z-20"
-                ></canvas>
-            </div>
-            <div id="messageBox" class="mt-4 p-3 bg-red-800 text-red-200 rounded-lg hidden w-full text-center"></div>
-        </div>
+        <canvas id="drawingCanvas"></canvas>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const dialogBox = document.getElementById('dialogBox');
-            const smartBoardTextLayer = document.getElementById('smartBoardTextLayer');
-            const messageBox = document.getElementById('messageBox');
-            const textColorInput = document.getElementById('textColor');
-            const fontSizeInput = document.getElementById('fontSize');
-            const fontSizeValueSpan = document.getElementById('fontSizeValue');
+    <div class="controls-area">
+        <textarea id="inputText" rows="4" placeholder="Enter your text here..."></textarea>
+        <div class="controls">
+            <button onclick="prepareBoard()">Prepare Board</button>
+            <button id="nextButton" onclick="displayNextUnit()" disabled>Next Word</button>
+            <select id="fontSelect" onchange="changeFont()">
+                <option value="dancing-script">Dancing Script</option>
+                <option value="inter">Inter</option>
+                <option value="open-sans">Open Sans</option>
+                <option value="roboto-mono">Roboto Mono</option>
+                <option value="press-start-2p">Press Start 2P</option>
+            </select>
+            <input type="color" id="textColor" value="#FACC15" title="Choose Text Color">
+            <button id="penToolButton" onclick="togglePenTool()">Toggle Pen</button>
+            <input type="color" id="penColor" value="#FFFFFF" title="Choose Pen Color">
+            <input type="range" id="penSize" min="1" max="10" value="3" title="Pen Size">
+            <button onclick="clearCanvas()">Clear Pen Marks</button>
+        </div>
+    </div>
+</div>
 
-            // Drawing elements
-            const drawingCanvas = document.getElementById('drawingCanvas');
-            const ctx = drawingCanvas.getContext('2d');
-            const penColorInput = document.getElementById('penColor');
-            const penSizeInput = document.getElementById('penSize');
-            const penSizeValueSpan = document.getElementById('penSizeValue');
+<script>
+    let contentUnits = [];
+    let currentUnitIndex = 0;
+    let currentFontMode = 'dancing-script';
+    const NEWLINE_TOKEN = '[NEWLINE_TOKEN]'; // Using a constant for clarity
 
-            // Eraser elements
-            const eraserSizeInput = document.getElementById('eraserSize');
-            const eraserSizeValueSpan = document.getElementById('eraserSizeValue');
+    const smartBoardTextLayer = document.getElementById('smartBoardTextLayer');
+    const smartBoardTextContent = document.getElementById('smartBoardTextContent'); // Reference to the inner div
+    const textColorInput = document.getElementById('textColor');
+    const nextButton = document.getElementById('nextButton');
+    const inputTextarea = document.getElementById('inputText');
+    const fontSelect = document.getElementById('fontSelect');
 
-            // Buttons
-            const startButton = document.getElementById('startButton');
-            const nextButton = document.getElementById('nextButton');
-            const toggleDrawingModeButton = document.getElementById('toggleDrawingModeButton');
-            const penToolButton = document.getElementById('penToolButton');
-            const rectToolButton = document.getElementById('rectToolButton');
-            const circleToolButton = document.getElementById('circleToolButton');
-            const lineToolButton = document.getElementById('lineToolButton');
-            const clearAllButton = document.getElementById('clearAllButton'); // New clear all button
-            // The clearDrawingButton was removed from HTML, so its JS reference and listener should also be removed.
-            // const clearDrawingButton = document.getElementById('clearDrawingButton'); // This line is now removed.
+    // Pen Tool Variables
+    const drawingCanvas = document.getElementById('drawingCanvas');
+    const ctx = drawingCanvas.getContext('2d');
+    let isDrawing = false;
+    let penToolActive = false;
+    const penToolButton = document.getElementById('penToolButton');
+    const penColorInput = document.getElementById('penColor');
+    const penSizeInput = document.getElementById('penSize');
 
+    // For touch events on canvas
+    let lastX = 0;
+    let lastY = 0;
 
-            let words = [];
-            let currentWordIndex = 0;
+    // --- Canvas Setup and Drawing Logic ---
+    function resizeCanvas() {
+        drawingCanvas.width = drawingCanvas.offsetWidth;
+        drawingCanvas.height = drawingCanvas.offsetHeight;
+    }
 
-            // Drawing state variables
-            let isDrawing = false;
-            let lastX = 0;
-            let lastY = 0;
-            let startX = 0; // For shapes
-            let startY = 0; // For shapes
-            let penColor = penColorInput.value;
-            let penSize = parseFloat(penSizeInput.value);
-            let eraserSize = parseFloat(eraserSizeInput.value);
-            let drawingMode = 'pen'; // 'pen', 'eraser', 'rectangle', 'circle', 'line'
+    window.addEventListener('load', resizeCanvas);
+    window.addEventListener('resize', resizeCanvas);
 
-            // Get the computed background color of the smart board for eraser
-            const smartBoardContainer = document.getElementById('smartBoardContainer');
-            const computedStyle = window.getComputedStyle(smartBoardContainer);
-            const boardBackgroundColor = computedStyle.backgroundColor; // This will be 'rgb(26, 32, 44)' for bg-gray-900
+    function getMousePos(canvas, evt) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: evt.clientX - rect.left,
+            y: evt.clientY - rect.top
+        };
+    }
 
-            /**
-             * Displays a message in the message box.
-             * @param {string} message - The message to display.
-             * @param {string} type - The type of message ('success', 'error', 'info').
-             */
-            function showMessage(message, type = 'info') {
-                messageBox.textContent = message;
-                messageBox.classList.remove('hidden', 'bg-red-800', 'text-red-200', 'bg-green-800', 'text-green-200', 'bg-blue-800', 'text-blue-200');
-                if (type === 'error') {
-                    messageBox.classList.add('bg-red-800', 'text-red-200');
-                } else if (type === 'success') {
-                    messageBox.classList.add('bg-green-800', 'text-green-200');
-                } else { // info
-                    messageBox.classList.add('bg-blue-800', 'text-blue-200');
-                }
-                messageBox.classList.remove('hidden');
-                setTimeout(() => {
-                    messageBox.classList.add('hidden');
-                }, 3000); // Hide after 3 seconds
-            }
+    function getTouchPos(canvas, evt) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = evt.touches[0];
+        return {
+            x: touch.clientX - rect.left,
+            y: touch.clientY - rect.top
+        };
+    }
 
-            /**
-             * Resizes the canvas to fit its parent container.
-             */
-            function resizeCanvas() {
-                const container = document.getElementById('smartBoardContainer');
-                drawingCanvas.width = container.offsetWidth;
-                drawingCanvas.height = container.offsetHeight;
-                // Note: Resizing clears the canvas. For persistent drawings, you'd need to redraw.
-            }
+    function startDrawing(e) {
+        if (!penToolActive) return;
+        isDrawing = true;
+        ctx.beginPath();
+        let pos;
+        if (e.type.includes('mouse')) {
+            pos = getMousePos(drawingCanvas, e);
+        } else if (e.type.includes('touch')) {
+            pos = getTouchPos(drawingCanvas, e);
+        }
+        ctx.moveTo(pos.x, pos.y);
+        lastX = pos.x;
+        lastY = pos.y;
+    }
 
-            /**
-             * Updates the CSS custom property for font size.
-             * @param {number} size - The new font size value in rem.
-             */
-            function updateFontSize(size) {
-                document.documentElement.style.setProperty('--board-font-size', `${size}rem`);
-                fontSizeValueSpan.textContent = `${size}rem`;
-            }
+    function draw(e) {
+        if (!isDrawing || !penToolActive) return;
+        e.preventDefault();
 
-            /**
-             * Displays the next word on the smart board with the currently selected color.
-             */
-            function displayNextWord() {
-                if (currentWordIndex < words.length) {
-                    const word = words[currentWordIndex];
-                    const currentColor = textColorInput.value;
-                    
-                    const wordSpan = document.createElement('span');
-                    wordSpan.textContent = word + ' ';
-                    wordSpan.style.color = currentColor;
-                    wordSpan.classList.add('handwriting-font');
+        let pos;
+        if (e.type.includes('mouse')) {
+            pos = getMousePos(drawingCanvas, e);
+        } else if (e.type.includes('touch')) {
+            pos = getTouchPos(drawingCanvas, e);
+        }
 
-                    smartBoardTextLayer.appendChild(wordSpan);
-                    smartBoardTextLayer.scrollTop = smartBoardTextLayer.scrollHeight;
-                    currentWordIndex++;
-                    if (currentWordIndex === words.length) {
-                        showMessage('All words displayed!', 'success');
-                        nextButton.disabled = true;
-                    }
-                } else {
-                    showMessage('No more words to display. Click "Prepare Board" to start a new session.', 'info');
-                    nextButton.disabled = true;
-                }
-            }
+        ctx.lineTo(pos.x, pos.y);
+        ctx.strokeStyle = penColorInput.value;
+        ctx.lineWidth = penSizeInput.value;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
 
-            /**
-             * Sets the active tool button style.
-             * @param {HTMLElement} activeButton - The button to mark as active.
-             */
-            function setActiveToolButton(activeButton) {
-                const toolButtons = [penToolButton, toggleDrawingModeButton, rectToolButton, circleToolButton, lineToolButton];
-                toolButtons.forEach(button => {
-                    button.classList.remove('active', 'ring-blue-500', 'ring-purple-500', 'ring-gray-500', 'ring-orange-500'); // Remove all ring colors
-                    if (button.id === 'toggleDrawingModeButton') {
-                        button.classList.remove('ring-purple-500', 'ring-orange-500'); // Specific for toggle button
-                    } else {
-                         button.classList.remove('ring-gray-500');
-                    }
-                });
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        lastX = pos.x;
+        lastY = pos.y;
+    }
 
-                activeButton.classList.add('active');
-                if (activeButton.id === 'toggleDrawingModeButton') {
-                    activeButton.classList.add(drawingMode === 'pen' ? 'ring-purple-500' : 'ring-orange-500');
-                } else if (activeButton.id === 'penToolButton') {
-                     activeButton.classList.add('ring-gray-500');
-                } else {
-                    activeButton.classList.add('ring-gray-500'); // Default for shapes
-                }
-            }
+    function stopDrawing() {
+        isDrawing = false;
+        ctx.closePath();
+    }
 
+    function clearCanvas() {
+        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    }
 
-            /**
-             * Handles the start of a drawing/erasing/shape stroke (mouse down or touch start).
-             * @param {MouseEvent|TouchEvent} e - The event object.
-             */
-            function startDrawing(e) {
-                isDrawing = true;
-                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-
-                const rect = drawingCanvas.getBoundingClientRect();
-                lastX = clientX - rect.left;
-                lastY = clientY - rect.top;
-                startX = lastX; // Store start for shapes
-                startY = lastY; // Store start for shapes
-            }
-
-            /**
-             * Handles drawing/erasing/shape preview a line segment (mouse move or touch move).
-             * @param {MouseEvent|TouchEvent} e - The event object.
-             */
-            function draw(e) {
-                if (!isDrawing) return;
-                e.preventDefault();
-
-                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-
-                const rect = drawingCanvas.getBoundingClientRect();
-                const currentX = clientX - rect.left;
-                const currentY = clientY - rect.top;
-
-                // Clear the canvas for shape previews, but not for pen/eraser
-                if (drawingMode !== 'pen' && drawingMode !== 'eraser') {
-                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                }
-
-                ctx.beginPath();
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-
-                if (drawingMode === 'pen') {
-                    ctx.strokeStyle = penColor;
-                    ctx.lineWidth = penSize;
-                    ctx.moveTo(lastX, lastY);
-                    ctx.lineTo(currentX, currentY);
-                    ctx.stroke();
-                } else if (drawingMode === 'eraser') {
-                    ctx.strokeStyle = boardBackgroundColor;
-                    ctx.lineWidth = eraserSize;
-                    ctx.moveTo(lastX, lastY);
-                    ctx.lineTo(currentX, currentY);
-                    ctx.stroke();
-                } else if (drawingMode === 'rectangle') {
-                    ctx.strokeStyle = penColor;
-                    ctx.lineWidth = penSize;
-                    const width = currentX - startX;
-                    const height = currentY - startY;
-                    ctx.strokeRect(startX, startY, width, height);
-                } else if (drawingMode === 'circle') {
-                    ctx.strokeStyle = penColor;
-                    ctx.lineWidth = penSize;
-                    const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
-                    ctx.arc(startX, startY, radius, 0, Math.PI * 2);
-                    ctx.stroke();
-                } else if (drawingMode === 'line') {
-                    ctx.strokeStyle = penColor;
-                    ctx.lineWidth = penSize;
-                    ctx.moveTo(startX, startY);
-                    ctx.lineTo(currentX, currentY);
-                    ctx.stroke();
-                }
-                
-                [lastX, lastY] = [currentX, currentY];
-            }
-
-            /**
-             * Handles the end of a drawing/erasing/shape stroke (mouse up or touch end).
-             */
-            function stopDrawing() {
-                if (!isDrawing) return;
-                isDrawing = false;
-
-                // For shapes, draw the final shape after clearing preview
-                if (drawingMode !== 'pen' && drawingMode !== 'eraser') {
-                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height); // Clear preview
-                    ctx.beginPath();
-                    ctx.strokeStyle = penColor;
-                    ctx.lineWidth = penSize;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-
-                    const currentX = lastX; // Use the last recorded position as end point
-                    const currentY = lastY;
-
-                    if (drawingMode === 'rectangle') {
-                        const width = currentX - startX;
-                        const height = currentY - startY;
-                        ctx.strokeRect(startX, startY, width, height);
-                    } else if (drawingMode === 'circle') {
-                        const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
-                        ctx.arc(startX, startY, radius, 0, Math.PI * 2);
-                        ctx.stroke();
-                    } else if (drawingMode === 'line') {
-                        ctx.moveTo(startX, startY);
-                        ctx.lineTo(currentX, currentY);
-                        ctx.stroke();
-                    }
-                }
-            }
-
-            /**
-             * Clears all drawings from the canvas.
-             */
-            function clearDrawing() {
-                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                showMessage('Drawing cleared!', 'info');
-            }
-
-            /**
-             * Clears both text and drawings from the board.
-             */
-            function clearAll() {
-                clearDrawing(); // Clear canvas
-                smartBoardTextLayer.innerHTML = `<p style="color: ${textColorInput.value};" class="text-center w-full opacity-75">Your text will appear here...</p>`; // Clear text
-                words = []; // Reset words array
-                currentWordIndex = 0; // Reset word index
-                nextButton.disabled = true; // Disable next word button
-                showMessage('Board cleared!', 'success');
-            }
-
-            // --- Event Listeners ---
-
-            // Text input and display buttons
-            startButton.addEventListener('click', () => {
-                smartBoardTextLayer.innerHTML = ''; // Clear the text layer
-                const text = dialogBox.value.trim();
-
-                if (text === '') {
-                    showMessage('Please enter some text to prepare the board.', 'error');
-                    smartBoardTextLayer.innerHTML = `<p style="color: ${textColorInput.value};" class="text-center w-full opacity-75">Your text will appear here...</p>`;
-                    nextButton.disabled = true;
-                    return;
-                }
-
-                words = text.split(/\s+/).filter(word => word.length > 0);
-                currentWordIndex = 0; // Reset word index
-
-                if (words.length > 0) {
-                    showMessage('Board prepared! Click "Next Word" to start writing.', 'success');
-                    nextButton.disabled = false; // Enable next button
-                } else {
-                    showMessage('No words found in the input.', 'error');
-                    smartBoardTextLayer.innerHTML = `<p style="color: ${textColorInput.value};" class="text-center w-full opacity-75">Your text will appear here...</p>`;
-                    nextButton.disabled = true;
-                }
-            });
-
-            nextButton.addEventListener('click', () => {
-                displayNextWord();
-            });
-
-            // Text styling options
-            fontSizeInput.addEventListener('input', (event) => {
-                updateFontSize(parseFloat(event.target.value));
-            });
-
-            // Drawing functionality
+    function togglePenTool() {
+        penToolActive = !penToolActive;
+        if (penToolActive) {
+            penToolButton.classList.add('active-tool');
+            drawingCanvas.style.pointerEvents = 'auto';
             drawingCanvas.addEventListener('mousedown', startDrawing);
             drawingCanvas.addEventListener('mousemove', draw);
             drawingCanvas.addEventListener('mouseup', stopDrawing);
             drawingCanvas.addEventListener('mouseout', stopDrawing);
-
-            // Touch events for drawing
-            drawingCanvas.addEventListener('touchstart', startDrawing, { passive: false });
-            drawingCanvas.addEventListener('touchmove', draw, { passive: false });
+            drawingCanvas.addEventListener('touchstart', startDrawing);
+            drawingCanvas.addEventListener('touchmove', draw);
             drawingCanvas.addEventListener('touchend', stopDrawing);
             drawingCanvas.addEventListener('touchcancel', stopDrawing);
+        } else {
+            penToolButton.classList.remove('active-tool');
+            drawingCanvas.style.pointerEvents = 'none';
+            drawingCanvas.removeEventListener('mousedown', startDrawing);
+            drawingCanvas.removeEventListener('mousemove', draw);
+            drawingCanvas.removeEventListener('mouseup', stopDrawing);
+            drawingCanvas.removeEventListener('mouseout', stopDrawing);
+            drawingCanvas.removeEventListener('touchstart', startDrawing);
+            drawingCanvas.removeEventListener('touchmove', draw);
+            drawingCanvas.removeEventListener('touchend', stopDrawing);
+            drawingCanvas.removeEventListener('touchcancel', stopDrawing);
+            isDrawing = false;
+        }
+    }
 
-            // Drawing options
-            penColorInput.addEventListener('input', (event) => {
-                penColor = event.target.value;
-            });
-            penSizeInput.addEventListener('input', (event) => {
-                penSize = parseFloat(event.target.value);
-                penSizeValueSpan.textContent = `${penSize}px`;
-            });
+    // --- Text Board Logic ---
+    function processInputText(rawText) {
+        const processedUnits = [];
+        const normalizedText = rawText.replace(/\r\n|\r/g, '\n');
+        // This regex correctly splits by words and sequences of spaces/newlines, capturing both.
+        const parts = normalizedText.match(/(\S+|\s+)/g);
 
-            // Eraser options
-            eraserSizeInput.addEventListener('input', (event) => {
-                eraserSize = parseFloat(event.target.value);
-                eraserSizeValueSpan.textContent = `${eraserSize}px`;
-            });
-
-            // Tool selection buttons
-            penToolButton.addEventListener('click', () => {
-                drawingMode = 'pen';
-                setActiveToolButton(penToolButton);
-                showMessage('Pen tool selected.', 'info');
-            });
-
-            toggleDrawingModeButton.addEventListener('click', () => {
-                if (drawingMode === 'pen' || drawingMode === 'eraser') { // Only toggle if currently pen or eraser
-                    drawingMode = drawingMode === 'pen' ? 'eraser' : 'pen';
-                    toggleDrawingModeButton.querySelector('i').className = drawingMode === 'pen' ? 'fas fa-pen' : 'fas fa-eraser'; // Change icon
-                    toggleDrawingModeButton.title = drawingMode === 'pen' ? 'Switch to Eraser' : 'Switch to Pen'; // Change title
-                    toggleDrawingModeButton.classList.toggle('bg-purple-600', drawingMode === 'pen');
-                    toggleDrawingModeButton.classList.toggle('hover:bg-purple-700', drawingMode === 'pen');
-                    toggleDrawingModeButton.classList.toggle('bg-orange-600', drawingMode === 'eraser');
-                    toggleDrawingModeButton.classList.toggle('hover:bg-orange-700', drawingMode === 'eraser');
-                    showMessage(`${drawingMode.charAt(0).toUpperCase() + drawingMode.slice(1)} mode activated!`, 'info');
-                } else { // If a shape tool is active, switch to pen first
-                    drawingMode = 'pen';
-                    toggleDrawingModeButton.querySelector('i').className = 'fas fa-pen';
-                    toggleDrawingModeButton.title = 'Switch to Eraser';
-                    toggleDrawingModeButton.classList.remove('bg-orange-600', 'hover:bg-orange-700');
-                    toggleDrawingModeButton.classList.add('bg-purple-600', 'hover:bg-purple-700');
-                    showMessage('Pen tool selected.', 'info');
+        if (parts) {
+            parts.forEach(part => {
+                if (part === '\n') {
+                    processedUnits.push(NEWLINE_TOKEN);
+                } else if (part.match(/^\s+$/)) {
+                    // If the part is purely whitespace (spaces, tabs etc.), push it directly.
+                    // The 'white-space: pre;' on the span will ensure it's rendered correctly.
+                    processedUnits.push(part);
+                } else {
+                    processedUnits.push(part);
                 }
-                setActiveToolButton(drawingMode === 'pen' ? penToolButton : toggleDrawingModeButton); // Highlight correct button
             });
+        }
+        return processedUnits;
+    }
 
 
-            rectToolButton.addEventListener('click', () => {
-                drawingMode = 'rectangle';
-                setActiveToolButton(rectToolButton);
-                showMessage('Rectangle tool selected. Click and drag to draw.', 'info');
-            });
+    function displayNextUnit() {
+        if (currentUnitIndex < contentUnits.length) {
+            const unit = contentUnits[currentUnitIndex];
+            const currentColor = textColorInput.value;
 
-            circleToolButton.addEventListener('click', () => {
-                drawingMode = 'circle';
-                setActiveToolButton(circleToolButton);
-                showMessage('Circle tool selected. Click and drag to draw.', 'info');
-            });
+            if (unit === NEWLINE_TOKEN) {
+                // Avoid adding multiple <br> tags if content already ends with one
+                const lastChild = smartBoardTextContent.lastElementChild;
+                if (!lastChild || lastChild.tagName !== 'BR') {
+                    smartBoardTextContent.appendChild(document.createElement('br'));
+                }
+            } else {
+                const span = document.createElement('span');
+                span.textContent = unit;
+                span.style.color = currentColor;
+                span.classList.add('board-text-display');
+                // Apply the current font class dynamically from the selection
+                span.classList.add(`font-${currentFontMode}`);
 
-            lineToolButton.addEventListener('click', () => {
-                drawingMode = 'line';
-                setActiveToolButton(lineToolButton);
-                showMessage('Line tool selected. Click and drag to draw.', 'info');
-            });
+                // If the unit itself is whitespace, preserve it with 'pre'
+                if (/^\s+$/.test(unit)) {
+                    span.style.whiteSpace = 'pre';
+                }
 
-            // Clear buttons
-            // Removed the event listener for clearDrawingButton as it no longer exists in HTML
-            // clearDrawingButton.addEventListener('click', clearDrawing);
-            clearAllButton.addEventListener('click', clearAll); // New button to clear everything
+                smartBoardTextContent.appendChild(span); // Append to the inner text content div
+            }
 
-            // Initial setup on load
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-            updateFontSize(parseFloat(fontSizeInput.value));
-            penSizeValueSpan.textContent = `${penSize}px`;
-            eraserSizeValueSpan.textContent = `${eraserSize}px`;
-            smartBoardTextLayer.innerHTML = `<p style="color: ${textColorInput.value};" class="text-center w-full opacity-75">Your text will appear here...</p>`;
-            setActiveToolButton(penToolButton); // Set pen as active by default
+            // Scroll the main board container to keep the last appended content visible
+            smartBoardTextLayer.scrollTop = smartBoardTextLayer.scrollHeight;
+            currentUnitIndex++;
+
+            if (currentUnitIndex === contentUnits.length) {
+                // No showMessage function defined, so just disable the button
+                nextButton.disabled = true;
+            }
+        } else {
+            nextButton.disabled = true;
+        }
+    }
+
+    function prepareBoard() {
+        const inputText = inputTextarea.value;
+        contentUnits = processInputText(inputText);
+        currentUnitIndex = 0;
+        smartBoardTextContent.innerHTML = ''; // Clear the inner div
+        nextButton.disabled = false;
+        clearCanvas();
+
+        smartBoardTextLayer.className = 'board'; // Reset to just 'board'
+        smartBoardTextLayer.classList.add(`font-${currentFontMode}`);
+
+        // Set initial scroll to bottom so first content appears from there
+        smartBoardTextLayer.scrollTop = smartBoardTextLayer.scrollHeight;
+    }
+
+    function changeFont() {
+        currentFontMode = fontSelect.value;
+        smartBoardTextLayer.className = 'board';
+        smartBoardTextLayer.classList.add(`font-${currentFontMode}`);
+
+        const displayedSpans = smartBoardTextContent.querySelectorAll('.board-text-display');
+        displayedSpans.forEach(span => {
+            // Remove all specific font classes
+            span.classList.remove('font-dancing-script', 'font-inter', 'font-open-sans', 'font-roboto-mono', 'font-press-start-2p');
+            // Add the currently selected font class
+            span.classList.add(`font-${currentFontMode}`);
         });
-    </script>
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        inputTextarea.value = "Welcome, Commander!\n\nIncoming message appearing from the center.\n\nObserve as new data scrolls up, maintaining focus.\n\nHere are   some    words with varying   spaces.\n\nType your orders to begin a new transmission.";
+        prepareBoard();
+        fontSelect.value = currentFontMode;
+        drawingCanvas.style.pointerEvents = 'none';
+    });
+</script>
+
 </body>
 </html>
